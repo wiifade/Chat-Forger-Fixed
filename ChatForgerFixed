@@ -24,7 +24,7 @@ end
 local endpoint = "https://api.openai.com/v1/chat/completions"
 local systemPrompt = "You will be given a Roblox chat message and a task you will perform on the message. You will return the new Roblox chat message ONLY (DO NOT include things like 'MESSAGE: ' at the start). If the user task is N/A, return the original message. Preserve the original tone of the message (e.g. if the original message is lowercase, the new message should be lowercase). You will also be given the chat history for context, but ONLY use the LATEST user task and message."
 
-local model = "gpt-4o"
+local model = "gpt-3.5-turbo"
 local apiKey
 local guiVisible = true
 
@@ -200,8 +200,8 @@ end
 
 local function validateApiKey(key)
     local payload = json.encode({
-        model = model,
-        messages = {{role = "system", content = "Say 'hi'"}},
+        model = "gpt-3.5-turbo", -- Use a valid model
+        messages = {{role = "user", content = "Say hi"}},
         temperature = 0
     })
 
@@ -212,7 +212,7 @@ local function validateApiKey(key)
 
     local success, result = pcall(function()
         return request({
-            Url = endpoint,
+            Url = "https://api.openai.com/v1/chat/completions",
             Method = "POST",
             Headers = headers,
             Body = payload
@@ -220,8 +220,22 @@ local function validateApiKey(key)
     end)
 
     if not success then
+        warn("Request failed:", result)
         return false
     end
+
+    local responseData = json.decode(result.Body)
+    if responseData and responseData.choices and responseData.choices[1] then
+        return true
+    elseif responseData and responseData.error then
+        warn("OpenAI API Error: " .. (responseData.error.message or "Unknown error"))
+    else
+        warn("Unexpected response:", result.Body)
+    end
+
+    return false
+end
+
 
     local responseData = json.decode(result.Body)
     return responseData and responseData.choices and responseData.choices[1]
